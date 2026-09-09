@@ -25,7 +25,7 @@ void disable_raw_mode(void)
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
 }
 
-int touch(double px, double py, char **map)
+int touch(float px, float py, char **map)
 {
     int x = (int)px;
     int y = (int)py;
@@ -68,6 +68,8 @@ t_screen get_screen_size(void)
 
     screen.width = terminal.ws_col;
     screen.height = terminal.ws_row;
+
+    screen.width = screen.height * 2.5;
 
     return screen;
 }

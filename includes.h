@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <sys/ioctl.h>
+#include <X11/Xlib.h>
+#include <X11/keysym.h>
 
 #define PI 3.14159265358979323846
 
@@ -23,15 +25,15 @@ typedef struct s_screen
 
 typedef struct s_player
 {
-    double x;
-    double y;
-    double angle;
+    float x;
+    float y;
+    float angle;
     float speed;
 } t_player;
 
 t_screen get_screen_size(void);
-int touch(double px, double py, char **map);
+int touch(float px, float py, char **map);
 float fixed_dist(float x1, float y1, float x2, float y2, float player_angle);
 void enable_raw_mode(void);
 void disable_raw_mode(void);
-void handle_key(t_player *player, char **map);
+void handle_key(t_player *player, char **map, char *keys, KeyCode *keycodes);

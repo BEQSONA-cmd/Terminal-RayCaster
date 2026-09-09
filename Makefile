@@ -2,7 +2,7 @@ NAME = game
 CC = cc
 OBJ = $(SRC:.c=.o)
 
-LFLAGS = -lm 
+LFLAGS = -lm -lX11
 SRC = player.c utils.c main.c
 
 all: $(NAME)

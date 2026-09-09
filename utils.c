@@ -50,13 +50,14 @@ float distance(float x, float y)
     return sqrt(x * x + y * y);
 }
 
-float fixed_dist(float x1, float y1, float x2, float y2, float player_angle)
+float fixed_dist(float x1, float y1, float x2, float y2, float player_angle, float ray_angle)
 {
-    float delta_x = x2 - x1;
-    float delta_y = y2 - y1;
-    float angle = atan2(delta_y, delta_x) - player_angle;
-    float fix_dist = distance(delta_x, delta_y) * cos(angle);
-    return fix_dist;
+    float dx = x2 - x1;
+    float dy = y2 - y1;
+
+    float ray_dist = sqrtf(dx * dx + dy * dy);
+
+    return ray_dist * cosf(ray_angle - player_angle);
 }
 
 t_screen get_screen_size(void)
@@ -69,7 +70,7 @@ t_screen get_screen_size(void)
     screen.width = terminal.ws_col;
     screen.height = terminal.ws_row;
 
-    screen.width = screen.height * 2.5;
+    screen.width = screen.height * 3.5;
 
     return screen;
 }

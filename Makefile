@@ -3,7 +3,7 @@ CC = cc
 OBJ = $(SRC:.c=.o)
 
 LFLAGS = -lm -lX11
-SRC = player.c utils.c main.c
+SRC = player.c frame.c utils.c main.c
 
 all: $(NAME)
 

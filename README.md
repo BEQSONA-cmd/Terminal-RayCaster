@@ -2,7 +2,7 @@
 
 ### dependencies
 ```Bash
-sudo apt install libx11-dev
+sudo apt install build-essential
 ```
 
 ### RUN

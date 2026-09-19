@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <sys/ioctl.h>
-#include <X11/Xlib.h>
-#include <X11/keysym.h>
 
 #define PI 3.14159265358979323846
 
@@ -122,7 +120,8 @@ t_screen get_screen_size(void)
     screen.width = terminal.ws_col;
     screen.height = terminal.ws_row;
 
-    screen.width = screen.height * 3.5;
+    if (screen.width > screen.height * 3.5)
+        screen.width = screen.height * 3.5;
 
     return screen;
 }
@@ -149,50 +148,67 @@ void move_player(t_player *player, char **map, float dx, float dy)
         player->y = new_y;
 }
 
-void handle_key(t_player *player, char **map, char *keys, KeyCode *keycodes)
+void handle_key(t_player *player, char **map)
 {
-    float dx = 0, dy = 0;
-    float rot = 0;
+    char buf[64];
+    ssize_t n = read(STDIN_FILENO, buf, sizeof(buf));
 
-    if (keys[keycodes[0] >> 3] & (1 << (keycodes[0] & 7)))
-    {
-        dx = cos(player->angle) * player->speed;
-        dy = sin(player->angle) * player->speed;
-    }
-    if (keys[keycodes[2] >> 3] & (1 << (keycodes[2] & 7)))
-    {
-        dx = -cos(player->angle) * player->speed;
-        dy = -sin(player->angle) * player->speed;
-    }
-    if (keys[keycodes[1] >> 3] & (1 << (keycodes[1] & 7)))
-    {
-        dx = cos(player->angle - PI / 2) * player->speed;
-        dy = sin(player->angle - PI / 2) * player->speed;
-    }
-    if (keys[keycodes[3] >> 3] & (1 << (keycodes[3] & 7)))
-    {
-        dx = cos(player->angle + PI / 2) * player->speed;
-        dy = sin(player->angle + PI / 2) * player->speed;
-    }
-
-    if (keys[keycodes[5] >> 3] & (1 << (keycodes[5] & 7)))
-        rot = -player->speed;
-    if (keys[keycodes[6] >> 3] & (1 << (keycodes[6] & 7)))
-        rot = player->speed;
-
-    if (keys[keycodes[4] >> 3] & (1 << (keycodes[4] & 7)))
+    if (n <= 0)
         return;
 
-    if (dx != 0 || dy != 0)
-        move_player(player, map, dx, dy);
-
-    if (rot != 0)
+    for (ssize_t i = 0; i < n; i++)
     {
-        player->angle += rot;
-        if (player->angle < 0)
-            player->angle += 2 * PI;
-        if (player->angle >= 2 * PI)
-            player->angle -= 2 * PI;
+        unsigned char c = buf[i];
+
+        if (c == 'q' || c == 'Q')
+        {
+            disable_raw_mode();
+            printf("\033[2J\033[H\033[?25h");
+            exit(0);
+        }
+        else if (c == 'w' || c == 'W')
+        {
+            move_player(player, map,
+                cos(player->angle) * player->speed,
+                sin(player->angle) * player->speed);
+        }
+        else if (c == 's' || c == 'S')
+        {
+            move_player(player, map,
+                -cos(player->angle) * player->speed,
+                -sin(player->angle) * player->speed);
+        }
+        else if (c == 'a' || c == 'A')
+        {
+            move_player(player, map,
+                cos(player->angle - PI / 2) * player->speed,
+                sin(player->angle - PI / 2) * player->speed);
+        }
+        else if (c == 'd' || c == 'D')
+        {
+            move_player(player, map,
+                cos(player->angle + PI / 2) * player->speed,
+                sin(player->angle + PI / 2) * player->speed);
+        }
+        else if (c == 27)
+        {
+            if (i + 2 < n && buf[i + 1] == '[')
+            {
+                if (buf[i + 2] == 'D') // Left arrow
+                {
+                    player->angle -= player->speed;
+                    if (player->angle < 0)
+                        player->angle += 2 * PI;
+                }
+                else if (buf[i + 2] == 'C') // Right arrow
+                {
+                    player->angle += player->speed;
+                    if (player->angle >= 2 * PI)
+                        player->angle -= 2 * PI;
+                }
+                i += 2;
+            }
+        }
     }
 }
 
@@ -343,26 +359,6 @@ int main(void)
 
     enable_raw_mode();
 
-    Display *display = XOpenDisplay(NULL);
-
-    if (!display)
-    {
-        disable_raw_mode();
-        return 1;
-    }
-
-    KeyCode *keycodes = malloc(sizeof(KeyCode) * 7);
-
-    keycodes[0] = XKeysymToKeycode(display, XK_w);
-    keycodes[1] = XKeysymToKeycode(display, XK_a);
-    keycodes[2] = XKeysymToKeycode(display, XK_s);
-    keycodes[3] = XKeysymToKeycode(display, XK_d);
-    keycodes[4] = XKeysymToKeycode(display, XK_q);
-    keycodes[5] = XKeysymToKeycode(display, XK_Left);
-    keycodes[6] = XKeysymToKeycode(display, XK_Right);
-
-    char keys[32];
-
     while (1)
     {
         new_screen = get_screen_size();
@@ -375,9 +371,7 @@ int main(void)
 
         frame = create_frame(new_screen.width, new_screen.height);
 
-        XQueryKeymap(display, keys);
-
-        handle_key(&player, map, keys, keycodes);
+        handle_key(&player, map);
         draw(map, &player, &frame);
 
         render_frame(&frame);
@@ -385,7 +379,6 @@ int main(void)
         usleep(16000);
     }
 
-    XCloseDisplay(display);
     disable_raw_mode();
 
     printf("\033[2J");
